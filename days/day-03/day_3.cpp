@@ -1,7 +1,7 @@
 // day_3.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
 
-#define _CRT_SECURE_NO_WARNINGS 
+#define _CRT_SECURE_NO_WARNINGS
 
 #include <iostream>
 #include <vector>
@@ -10,53 +10,20 @@
 #include <sstream>
 #include <fstream>
 #include <algorithm>
-#include <numeric>
-#include <set>
-
-struct Point {
-  int x;
-  int y;
-};
 
 struct Claim {
   int ID;
-  Point offset;
-  Point rect;
-  bool overlap = false;
-
-  void print() {
-    std::cout << "ID: " << ID << " ";
-    std::cout << "Offset: " << offset.x << "," << offset.y << " ";
-    std::cout << "Rect: " << rect.x << "," << rect.y << std::endl;
-  }
+  int x;
+  int y;
+  int width;
+  int height;
 };
 
-
-auto printFabric(std::vector<std::vector<int>>& v)
-{
-  for (auto &row : v) {
-    for (auto &col : row) {
-      std::cout << col << " ";
-    }
-    std::cout << std::endl;
-  }
-  std::cout << std::endl;
-}
-
-
-auto printAllClaims(std::vector<Claim>& v)
-{
-  for (auto &it : v) {
-    it.print();
-  }
-}
-
-
-Claim parseClaim(std::string& claim_str)
+Claim parseClaim(std::string &claim_str)
 {
   int id, x, y, w, h;
   std::sscanf(claim_str.c_str(), "#%d @ %d,%d: %dx%d\n", &id, &x, &y, &w, &h);
-  return {id, {x, y}, {w, h}};
+  return {id, x, y, w, h};
 }
 
 auto getClaimsFromFile(std::string file_name)
@@ -71,75 +38,55 @@ auto getClaimsFromFile(std::string file_name)
   return claims;
 }
 
-
-auto claimFabric(std::vector<std::vector<int>>& fabric, Claim& c, int overlap_symbol, std::set<int>& overlaps)
+auto removeFromVec(std::vector<int> &vec, int element)
 {
-  for (auto i = c.offset.y; i < c.offset.y + c.rect.y; i++) {
-    for (auto j = c.offset.x; j < c.offset.x + c.rect.x; j++) {
-      if (fabric[i][j] > 0) {
-        overlaps.insert(fabric[i][j]);
-        overlaps.insert(c.ID);
-        fabric[i][j] = overlap_symbol;
-      }
-      else if (fabric[i][j] != -1) {
-        fabric[i][j] = c.ID;
-      }
-      else {
-        overlaps.insert(c.ID);
+  vec.erase(std::remove(vec.begin(), vec.end(), element), vec.end());
+}
+
+// Calculate the number of overlapped claimes. Modify list of ID by deleting overlapping IDs.
+// Return number of overlaps.
+auto calcOverlaps(const std::vector<Claim> &claims, std::vector<int> &no_overlap_id, const int overlap_symbol)
+{
+  auto overlaps = 0;
+  std::vector<std::vector<int>> fabric(1000, std::vector<int>(1000, 0)); // int fabric[1000][1000] = {0}
+
+  for (const auto &c : claims) {
+    for (auto i = c.y; i < c.y + c.height; i++) {
+      for (auto j = c.x; j < c.x + c.width; j++) {
+        // Unclaimed area
+        if (fabric[i][j] == 0) {
+          fabric[i][j] = c.ID;
+        } else {
+          removeFromVec(no_overlap_id, c.ID);
+          removeFromVec(no_overlap_id, fabric[i][j]);
+
+          // Area overlaped first time. Done to prevent counting duplicates
+          if (fabric[i][j] != -1) {
+            overlaps++;
+            fabric[i][j] = overlap_symbol;
+          }
+        }
       }
     }
   }
 
-  return c;
-}
-
-
-auto countOverlaps(std::vector<std::vector<int>>& v, int overlap_num)
-{
-  return std::accumulate(v.begin(), v.end(), 0, // Sum of all rows
-    [=](auto sum, const auto& row) {            // Predicate for accumulate
-    return sum + std::count_if(row.begin(), row.end(),  // Count occurences in a row (1D vector)
-      [=](auto i) { return i == overlap_num; });  // Preciate for count_if
-  });
-}
-
-auto findNoOverlap(std::vector<Claim> claims, std::set<int> overlaps)
-{
-  std::set<int> all_id;
-  for (auto& c : claims) {
-    all_id.insert(c.ID);
-  }
-
-  std::set<int> diff;
-  std::set_difference(all_id.begin(), all_id.end(), overlaps.begin(), overlaps.end(),
-    std::inserter(diff, diff.begin()));
-
-  auto res = 0;
-  for (auto& i : diff) {
-    res = i;
-  }
-
-  return res;
+  return overlaps;
 }
 
 int main()
 {
   const auto overlap_num = -1;
-  const auto x_max = 1000;
-  const auto y_max = 1000;
 
-  std::vector<std::vector<int>> fabric(x_max, std::vector<int>(y_max, 0));
   std::vector<Claim> claims = getClaimsFromFile("input.txt");
-  std::set<int> overlaps;
+  std::vector<int> no_overlap_id;
 
-  for (auto &claim : claims) {
-    claimFabric(fabric, claim, overlap_num, overlaps);
-  }
+  // Fill no_overlap_id with all ID's from claims
+  std::transform(claims.begin(), claims.end(), std::back_inserter(no_overlap_id),
+                 [](auto x) { return x.ID; });
 
-  auto pt1_res = countOverlaps(fabric, overlap_num);
-  std::cout << "Part 1) Number of overlaps: " << pt1_res << std::endl;
+  auto res_pt1 = calcOverlaps(claims, no_overlap_id, overlap_num);
+  std::cout << "Part 1) Number of overlaps: " << res_pt1 << std::endl;
 
-  auto pt2_res = findNoOverlap(claims, overlaps);
-  std::cout << "Part 2) ID with no overlaps: " << pt2_res << std::endl;
+  auto res_pt2 = *no_overlap_id.begin();
+  std::cout << "Part 2) ID with no overlaps: " << res_pt2 << std::endl;
 }
-
