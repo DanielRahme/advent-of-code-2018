@@ -1,55 +1,60 @@
-// Day 1 part 2 
+// day_1.cpp : This file contains the 'main' function. Program execution begins and ends there.
+//
+
 #include <iostream>
 #include <fstream>
-#include <string>
+#include <unordered_map>
 #include <vector>
+#include <chrono>
 
-int res = 0;
-bool dupe_found = 0;
-std::vector<int> seen_freq;
-
-int parse(std::string input)
+auto part1()
 {
-  char sign = input.at(0);
-
-  if (sign == '+') {
-    input = input.substr(1);
+  auto frequency = 0;
+  std::ifstream fs("input.txt");
+  while (fs.good()) {
+    auto change = 0;
+    fs >> change;
+    frequency += change;
   }
-
-  return std::stoi(input);
+  return frequency;
 }
 
-int result(int input)
+auto part2()
 {
+  auto frequency = 0;
+  std::vector<int> changes;
+  std::unordered_map<int,int> seen_frequencies;
   std::ifstream fs("input.txt");
-  std::string line;
 
-  while (std::getline(fs, line)) {
-    input += parse(line);
-
-    if (std::find(seen_freq.begin(), seen_freq.end(), input) != seen_freq.end()) {
-      std::cout << "dupe: " << input << std::endl;
-      dupe_found = 1;
-      seen_freq.push_back(input);
-      break;
-    }
-
-    seen_freq.push_back(input);
+  while (fs.good()) {
+    auto change = 0;
+    fs >> change;
+    changes.push_back(change);
   }
-  return input;
+
+  while (true) {
+    for (const auto& c : changes) {
+      frequency += c;
+      seen_frequencies[frequency]++;
+      if (seen_frequencies[frequency] > 2)
+        return frequency;
+    }
+  }
 }
 
 int main()
 {
-  int freq = 0;
+  std::ios::sync_with_stdio(false);
+  using namespace std::chrono;
+  auto start = steady_clock::now();
 
-  while (!dupe_found) {
-    freq = result(freq);
-  }
+  auto sum_part1 = part1();
+  std::cout << "Result part 1: " << sum_part1 << std::endl;; 
 
-  std::cout << "result: " << freq << std::endl;
-  std::cout << "repeated freq: " << seen_freq.back() << std::endl;
+  auto sum_part2 = part2();
+  std::cout << "Result part 2: " << sum_part2 << std::endl;; 
 
-  std::getchar();
-  return 0;
+  auto end = steady_clock::now();
+  std::cout << "\nExecution time: "
+            << duration_cast<duration<float>>(end - start).count() << "s\n";
 }
