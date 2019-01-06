@@ -1,131 +1,87 @@
-// day_2.cpp : Day 2 part 1 and 2 (partially)
+// aoc_day2.cpp : Defines the entry point for the console application.
 //
 
-#include "stdafx.h"
-#include <iostream>
-#include <fstream>
-#include <string>
 #include <algorithm>
+#include <fstream>
+#include <iostream>
+#include <string>
 #include <set>
-#include <tuple>
+#include <utility>
 #include <vector>
 
-std::string sortString(std::string word)
+std::pair<bool, bool> checkDoubleTripple(const std::string& line) 
 {
-	std::sort(word.begin(), word.end());
-	return word;
+  bool found_double = false;
+  bool found_triple = false;
+
+  std::set<char> unique_letters(line.begin(), line.end());
+  if (unique_letters.size() == line.size()) 
+    return  {false, false};
+
+  for (const auto& c : line) {
+    int count = std::count(line.begin(), line.end(), c);
+    if (count == 2) found_double = true;
+    if (count == 3) found_triple = true;
+  }
+  return  {found_double, found_triple};
 }
 
-std::tuple<bool, bool> checkDoubleTripple(std::string sortedWord)
+int part1() 
 {
-	bool found_double = false;
-	bool found_triple = false;
+  int doubles = 0;
+  int triples = 0;
 
-	std::set<char> unique_letters(sortedWord.begin(), sortedWord.end());
+  std::ifstream fs("input.txt");
+  std::string line;
 
-	if (unique_letters.size() == sortedWord.size()) {
-		return std::make_tuple(false, false);
-	}
-
-
-	for (int i = 0; i < sortedWord.size(); i++) {
-		char letter = sortedWord.at(i);
-		int count = std::count(sortedWord.begin(), sortedWord.end(), letter);
-
-		if (count == 2)
-			found_double = true;
-		if (count == 3)
-			found_triple = true;
-	}
-
-	return std::make_tuple(found_double, found_triple);
+  while (std::getline(fs, line)) {
+    auto [found_double, found_triple] = checkDoubleTripple(line);
+    if (found_double) doubles++;
+    if (found_triple) triples++;
+  }
+  return doubles * triples;
 }
 
-int part1()
+auto getDiff(const std::string& s1, const std::string& s2)
 {
-	int doubles = 0;
-	int triples = 0;
-
-	std::ifstream fs("input.txt");
-	std::string line;
-
-	while (std::getline(fs, line)) {
-		auto isDoubleTriple = checkDoubleTripple(line);
-
-		if (std::get<0>(isDoubleTriple)) {
-			doubles++;
-		}
-		if (std::get<1>(isDoubleTriple)) {
-			triples++;
-		}
-	}
-
-	return doubles * triples;
+  int diff = 0;
+  for (int i = 0; i < s1.size(); i++) 
+    diff += (s1[i] != s2[i]);
+  return diff;
 }
 
-std::string::size_type diffLetters(std::string s1, std::string s2) {
-	sort(begin(s1), end(s1));
-	sort(begin(s2), end(s2));
-	std::string intersection;
-	std::set_intersection(begin(s1), end(s1), begin(s2), end(s2), back_inserter(intersection));
-	return s1.size() - intersection.size();
+auto commonLetters(const std::string& s1, const std::string& s2)
+{
+  std::string result;
+  for (auto i = 0; i < s1.size(); i++) {
+    if (s1[i] == s2[i])
+      result.push_back(s1[i]);
+  }
+  return result;
 }
 
-int getDiff(std::string str1, std::string str2) 
+auto part2() 
 {
-	int diff = 0;
+  std::ifstream fs("input.txt");
+  std::string line = "";
+  std::vector<std::string> input;
+  while (std::getline(fs, line)) 
+    input.push_back(line);
 
-	if (str1.empty() || str2.empty()) {	// Check if empty
-		return -1;
-	}
-
-	if (str1.size() != str2.size()) {	// Check if different length
-		return -2;
-	}
-	
-	for (int i = 0; i < str1.size(); i++) {
-		if (str1.at(i) != str2.at(i)) {
-			diff++;
-		}
-	}
-
-	return diff;
+  for (const auto& current_string : input) {
+    for (const auto& other_string : input) {
+      if (getDiff(current_string, other_string) == 1)
+        return commonLetters(current_string, other_string);
+    }
+  }
+  return std::string("Error: Match not found!");
 }
 
-void part2()
+int main() 
 {
-	std::ifstream fs("input.txt");
-	std::string line = "";
-	int diff = 0;
-	std::vector<std::string> input;
+  int res_1 = part1();
+  std::cout << "Result part 1: " << res_1 << std::endl;
 
-	while (std::getline(fs, line)) {
-		input.push_back(line);
-	}
-
-	for (std::vector<int>::size_type i = 0; i != input.size(); i++) {
-		std::string current_string = input[i];
-
-		for (std::vector<int>::size_type j = 0; j != input.size(); j++) {
-			diff = getDiff(current_string, input[j]);
-			if (diff == 1) {
-				std::cout << "diff: " << diff << std::endl;
-				std::cout << "str1: " << current_string << std::endl;
-				std::cout << "str2: " << input[j] << std::endl << std::endl;
-			}
-		}
-	}
-}
-
-
-int main()
-{
-	int res_1 = part1();
-	std::cout << "result: " << res_1 << std::endl;
-
-	part2();
-  std::cout << "Pt2: Solve it yourself!: " << std::endl;
-
-  std::getchar();
-	return 0;
+  auto res_2 = part2();
+  std::cout << "Result part 2: " << res_2 << std::endl;
 }
