@@ -9,7 +9,7 @@
 #include <algorithm>
 #include <sstream>
 
-auto increment(uint64_t idx, const int recipe, const int size)
+auto increment(int idx, const int recipe, const int size)
 {
   idx += recipe + 1;
   while (idx >= size) 
@@ -17,15 +17,12 @@ auto increment(uint64_t idx, const int recipe, const int size)
   return idx;
 }
 
-auto tick(std::array<uint64_t, 2>& idx, std::vector<int>& rec)
+auto tick(std::array<int, 2>& idx, std::vector<int>& rec)
 {
   auto new_recipe = rec[idx[0]] + rec[idx[1]];
-  if (new_recipe > 9) {
+  if (new_recipe > 9) 
     rec.emplace_back(1);
-    rec.emplace_back(new_recipe-10);
-  } else {
-    rec.emplace_back(new_recipe);
-  }
+  rec.emplace_back(new_recipe % 10);
 
   for (auto& i : idx) 
     i = increment(i, rec.at(i), rec.size());
@@ -33,7 +30,7 @@ auto tick(std::array<uint64_t, 2>& idx, std::vector<int>& rec)
 
 auto getRecepie1(const int number)
 {
-  std::array<uint64_t, 2> eleves_idx{0, 1};
+  std::array<int, 2> eleves_idx{0, 1};
   std::vector<int> recipes{3, 7};
 
   while (recipes.size() < number + 10) 
@@ -44,28 +41,22 @@ auto getRecepie1(const int number)
   return res.str();
 }
 
-auto correctSequence(const std::vector<int>& rec, const std::vector<int>& seq)
-{
-  if (rec.size() < seq.size()) 
-    return false;
-  std::vector<int> last_elements(rec.end()-seq.size(), rec.end());
-  return last_elements == seq;
-}
-
 auto getRecepie2(std::string input)
 {
-  std::array<uint64_t, 2> eleves_idx{0, 1};
+  std::array<int, 2> eleves_idx{0, 1};
   std::vector<int> recipes{3, 7};
   recipes.reserve(20'000'000);
   std::vector<int> seq;
   
-  for (auto i = 0; i < input.size(); i++) 
-    seq.push_back(input[i] - '0');
-  if (seq.back() == 1) seq.push_back(0); // Hack to avoid the skipped check when insertion of sum >= 10
+  for (const auto& c : input) 
+    seq.push_back(c - '0');
   
-  while (!correctSequence(recipes, seq)) 
+  auto correct_sequence = [&](){
+    return std::includes(recipes.end() - seq.size() - 1, recipes.end(), seq.begin(), seq.end());};
+
+  while (!correct_sequence()) 
     tick(eleves_idx, recipes);
-  return recipes.size() - seq.size();
+  return recipes.size() - seq.size() - 1;
 }
 
 int main()
